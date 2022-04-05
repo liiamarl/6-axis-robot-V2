@@ -12,3 +12,5 @@ you can also find the electrical drawings.
 There is also a little presentation pdf with pictures of it. 
 
 here is a video of the robot being tested : https://www.reddit.com/r/robotics/comments/tv4i7z/linear_motion_is_done_i_didnt_thought_it_would/
+
+if you want to check how i programmed the robot, the most interresting parts are in robot_maths.py and robot_class.py.
