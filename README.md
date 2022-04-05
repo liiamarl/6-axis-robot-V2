@@ -10,4 +10,5 @@ you will find the python code in the "programme" directory.
 The full CAD assembly is here in step file.
 you can also find the electrical drawings.
 There is also a little presentation pdf with pictures of it. 
+
 here is a video of the robot being tested : https://www.reddit.com/r/robotics/comments/tv4i7z/linear_motion_is_done_i_didnt_thought_it_would/
