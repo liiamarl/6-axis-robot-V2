@@ -7,7 +7,7 @@ It is 3D printed in PETG, uses 6 dynamixels XL330-M288-T servomotors and is cont
 
 
 you will find the python code in the "programme" directory.
-The full CAD assembly is here in step file.
+The full CAD assembly is here in step file (robot_assembly.zip).
 you can also find the electrical drawings.
 There is also a little presentation pdf with pictures of it. 
 
