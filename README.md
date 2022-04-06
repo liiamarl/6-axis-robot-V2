@@ -16,3 +16,5 @@ here is a video of the robot being tested : https://www.reddit.com/r/robotics/co
 if you want to check how i programmed the robot, the most interresting parts are in robot_maths.py and robot_class.py.
 
 everything in this repository is published under the general public license GNU version 2.
+
+if anyone actually want to built it, contact me on reddit (u/liiamarl) as there are improvements that can easily be made. Also if you have any questions don't hesitate to contact me !
