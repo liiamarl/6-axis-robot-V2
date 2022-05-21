@@ -57,9 +57,9 @@ class joint:
 
     def __init__(self, ID):
         self.ID = ID
-        Origin = [500, 2800, 2300, 0, 500, -1048575] # minimum position of the servo
-        Middle = [5413, 8500, 10000, 2048, 2000, 2048] # servo position that correspond to 0 degrees for the joint
-        End = [10000, 18000, 12700, 4095, 3650, 1048575] # maximum position of the servo
+        Origin = [250, 750, 2300, 0, 500, -1048575] # minimum position of the servo
+        Middle = [5300, 6600, 10000, 2048, 2000, 2048] # servo position that correspond to 0 degrees for the joint
+        End = [10000, 16000, 12700, 4095, 3650, 1048575] # maximum position of the servo
         StopPin = [17, 22, 27, 0, 0, 0] # pin number on the raspberry pi on witch the endstop is wired (only joint 1, 2 and 3 have one)
         Coef = [55.316, 109.283, 55.316, 11.378, 11.378, 11.378] # number of encoder steps in one degree of joint movement
         P = [2500, 1800, 3000, 2500, 2000, 2000]
@@ -105,24 +105,23 @@ class joint:
                 self.offset = 4096  #4096 steps = 1 turn
             home = False
             if self.ID == 12:
-                self.set_movement_time(2500, 500)#this one has the most weight to carry so i prefer to do it slower
+                self.set_movement_time(1500, 250)#this one has the most weight to carry so i prefer to do it slower
             else:
-                self.set_movement_time(1500, 250)
+                self.set_movement_time(1100, 100)
             while not home:
                 move_servo(self.ID, self.Origin - self.offset)
-                if self.ID == 2:
-                    sleep(2.5)
-                else:
-                    sleep(1.5)
-                for i in range(150):
-                    #the end switches have huge relyability issues, this is ugly but it works
-                    #there are A LOT of false positive on the switch / GPIO but no false negative
-                    #we check 150 times if the switch is pressed
-                    #the switches are normally closed
-                    if not GPIO.input(self.StopPin):
-                        home = True
-                        break;
-                    sleep(.015)
+                sleep(.4)
+                servo_pos = get_servo_position(self.ID)
+                if servo_pos > 2147483648:
+                    servo_pos -= 4294967296
+                while(mt.fabs(servo_pos - self.Origin + self.offset) > 20):
+                    sleep(.01)
+                    servo_pos = get_servo_position(self.ID)
+                    if servo_pos > 2147483648:
+                        servo_pos -= 4294967296
+                
+                if not GPIO.input(self.StopPin):
+                    home = True
                 if home:
                     # switch has been pressed, we write the offset in the servo
                     print("HOME")
@@ -204,25 +203,25 @@ class robot:
             #first one
             translation = [start[0][0] + accel_steps_coefs[0] * translation_vector[0], start[0][1] + accel_steps_coefs[0] * translation_vector[1], start[0][2] + accel_steps_coefs[0] * translation_vector[2]]
             matrix = np.dot(ZYX_to_matrix(start[1]), accel_matrix[0])
-            move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, self.current_position["joint_angles"]))
+            move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, position["joint_angles"]))
             for i in range(1, n_accel_steps):
                 #acceleration
                 translation = [move_list[i - 1]["tool_position"][0][0] + accel_steps_coefs[i] * translation_vector[0], move_list[i - 1]["tool_position"][0][1] + accel_steps_coefs[i] * translation_vector[1], move_list[i - 1]["tool_position"][0][2] + accel_steps_coefs[i] * translation_vector[2]]
                 matrix = np.dot(ZYX_to_matrix(move_list[i - 1]["tool_position"][1]), accel_matrix[i])
-                move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, move_list[i - 1]["joint_angles"]))
+                move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, position["joint_angles"]))
 
             for i in range(n_accel_steps, n_step - n_accel_steps):
                 #constant speed
                 translation = [move_list[i - 1]["tool_position"][0][0] + full_step_coef * translation_vector[0], move_list[i - 1]["tool_position"][0][1] + full_step_coef * translation_vector[1], move_list[i - 1]["tool_position"][0][2] + full_step_coef * translation_vector[2]]
                 matrix = np.dot(ZYX_to_matrix(move_list[i - 1]["tool_position"][1]), full_step_matrix)
-                move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, move_list[i - 1]["joint_angles"]))
+                move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, position["joint_angles"]))
 
             ind = n_accel_steps - 1
             for i in range(n_step - n_accel_steps, n_step - 1):
                 #decceleration
                 translation = [move_list[i - 1]["tool_position"][0][0] + accel_steps_coefs[ind] * translation_vector[0], move_list[i - 1]["tool_position"][0][1] + accel_steps_coefs[ind] * translation_vector[1], move_list[i - 1]["tool_position"][0][2] + accel_steps_coefs[ind] * translation_vector[2]]
                 matrix = np.dot(ZYX_to_matrix(move_list[i - 1]["tool_position"][1]), accel_matrix[ind])
-                move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, move_list[i - 1]["joint_angles"]))
+                move_list.append(inverse_kinematics([translation, matrix_to_ZYX(matrix)], self.tool_offset, position["joint_angles"]))
                 ind -= 1
 
         else:
@@ -402,6 +401,13 @@ class robot:
             self.tool_offset = [0.0, 0.0, 60.0]
             self.update_position()
             self.joints["J6"].multi_turn = True
+        if tool_name == "fork":
+            self.tool = tool_name
+            self.tool_offset = [32.5, 45, 136]
+            self.update_position()
+            self.joints["J6"].multi_turn = False
+            self.error_margin = 5
+            
 
     def actionate_tool(self):
         #when making a new tool, define its action, if any here
